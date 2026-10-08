@@ -200,13 +200,19 @@
       bind:value={editText}
     />
     <div class="modal-action">
-      <form method="dialog">
-        <button type="button" class="btn">Cancel</button>
-        <button
-          onclick={() => rename(editTodo?.id, editText)}
-          class="btn btn-primary">Save</button
-        >
-      </form>
+      <button type="button" class="btn" onclick={() => editDialog?.close()}>
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        onclick={() => {
+          rename(editTodo?.id, editText);
+          editDialog?.close();
+        }}
+      >
+        Save
+      </button>
     </div>
   </div>
   <form method="dialog" class="modal-backdrop">
