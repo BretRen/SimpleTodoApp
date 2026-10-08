@@ -1,5 +1,8 @@
 <script lang="ts">
   let aboutDialog = $state<HTMLDialogElement>();
+  let editDialog = $state<HTMLDialogElement>();
+  let editTodo = $state<Todo>();
+  let editText = $state("");
 
   interface Todo {
     id: string;
@@ -42,6 +45,16 @@
 
   function remove(id: string) {
     todos = todos.filter((t) => t.id !== id);
+  }
+
+  function rename(id: string | undefined, text: string | undefined) {
+    const next = text?.trim();
+    if (!id || !next) return;
+    todos = todos.map((todo) =>
+      todo.id === id ? { ...todo, text: next } : todo,
+    );
+    editText = "";
+    editTodo = undefined;
   }
 
   function clearCompleted() {
@@ -98,9 +111,20 @@
             <button
               type="button"
               class="btn btn-ghost btn-xs btn-circle opacity-40 hover:opacity-100"
+              onclick={() => {
+                editTodo = todo;
+                editText = todo.text;
+                editDialog?.showModal();
+              }}
+            >
+              <span class="material-symbols-outlined text-xl!"> edit </span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost btn-xs btn-circle opacity-40 hover:opacity-100"
               onclick={() => remove(todo.id)}
             >
-              ✕
+              <span class="material-symbols-outlined text-xl!"> delete </span>
             </button>
           </div>
         {/each}
@@ -161,6 +185,29 @@
       might not see many updates, though I do use it myself :D
     </p>
     <p class="text-gray-500">Made by Pidan</p>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
+
+<dialog bind:this={editDialog} class="modal">
+  <div class="modal-box">
+    <h3 class="text-lg font-bold">Edit Todo</h3>
+    <input
+      class="input mt-4 w-full"
+      placeholder="Have you decided what you're going to do?"
+      bind:value={editText}
+    />
+    <div class="modal-action">
+      <form method="dialog">
+        <button type="button" class="btn">Cancel</button>
+        <button
+          onclick={() => rename(editTodo?.id, editText)}
+          class="btn btn-primary">Save</button
+        >
+      </form>
+    </div>
   </div>
   <form method="dialog" class="modal-backdrop">
     <button>close</button>
