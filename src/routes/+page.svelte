@@ -1,4 +1,6 @@
 <script lang="ts">
+  let aboutDialog = $state<HTMLDialogElement>();
+
   interface Todo {
     id: string;
     text: string;
@@ -58,7 +60,10 @@
     <h1 class="text-2xl font-bold tracking-tight">Todos</h1>
     <p>
       <span class="text-gray-400">Maybe try create a todo?</span>
-      <span class="text-gray-400 underline">About</span>
+      <button
+        onclick={() => aboutDialog?.showModal()}
+        class="text-gray-400 underline">About</button
+      >
     </p>
     <form
       onsubmit={(e) => {
@@ -138,7 +143,7 @@
         <button
           type="button"
           class="hover:underline"
-          class:invisible={todos.some((t) => t.done)}
+          class:invisible={!todos.some((t) => t.done)}
           onclick={clearCompleted}
         >
           Clear completed
@@ -147,3 +152,17 @@
     {/if}
   </div>
 </main>
+
+<dialog bind:this={aboutDialog} class="modal">
+  <div class="modal-box flex justify-center items-center flex-col">
+    <h3 class="text-lg font-bold">About</h3>
+    <p>
+      This is a practice project created during the Terra preparation week. It
+      might not see many updates, though I do use it myself :D
+    </p>
+    <p class="text-gray-500">Made by Pidan</p>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
