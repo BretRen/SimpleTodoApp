@@ -3,11 +3,13 @@
   let editDialog = $state<HTMLDialogElement>();
   let editTodo = $state<Todo>();
   let editText = $state("");
+  let editDate = $state<string | undefined>();
 
   interface Todo {
     id: string;
     text: string;
     done: boolean;
+    dueDate?: Temporal.ZonedDateTime;
   }
 
   let todos = $state<Todo[]>([]);
@@ -18,13 +20,27 @@
     const saved = localStorage.getItem("todos");
     if (saved) {
       try {
-        todos = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        todos = parsed.map((t: any) => ({
+          ...t,
+          dueDate: t.dueDate
+            ? Temporal.ZonedDateTime.from(t.dueDate)
+            : undefined,
+        }));
       } catch {}
     }
   });
 
   $effect(() => {
-    localStorage.setItem("todos", JSON.stringify(todos));
+    localStorage.setItem(
+      "todos",
+      JSON.stringify(
+        todos.map((t) => ({
+          ...t,
+          dueDate: t.dueDate?.toString(),
+        })),
+      ),
+    );
   });
 
   const remaining = $derived(todos.filter((t) => !t.done).length);
@@ -47,13 +63,52 @@
     todos = todos.filter((t) => t.id !== id);
   }
 
-  function rename(id: string | undefined, text: string | undefined) {
+  function isOverdue(dueDate?: Temporal.ZonedDateTime): boolean {
+    if (!dueDate) return false;
+    const now = Temporal.Now.zonedDateTimeISO();
+    return Temporal.ZonedDateTime.compare(dueDate, now) < 0;
+  }
+
+  function formatRelative(zdt: Temporal.ZonedDateTime) {
+    if (!zdt) return "";
+
+    const now = Temporal.Now.zonedDateTimeISO();
+    const duration = now.until(zdt, { largestUnit: "day" });
+
+    const rtf = new Intl.RelativeTimeFormat(navigator.language, {
+      numeric: "auto",
+    });
+
+    if (Math.abs(duration.days) >= 1) {
+      return rtf.format(duration.days, "day");
+    }
+    if (Math.abs(duration.hours) >= 1) {
+      return rtf.format(duration.hours, "hour");
+    }
+    if (Math.abs(duration.minutes) >= 1) {
+      return rtf.format(duration.minutes, "minute");
+    }
+    return rtf.format(duration.seconds, "second");
+  }
+
+  function update() {
+    const id = editTodo?.id;
+    const text = editText;
     const next = text?.trim();
     if (!id || !next) return;
+
+    const dueDate = editDate
+      ? Temporal.PlainDateTime.from(editDate).toZonedDateTime(
+          Temporal.Now.timeZoneId(),
+        )
+      : undefined;
+
     todos = todos.map((todo) =>
-      todo.id === id ? { ...todo, text: next } : todo,
+      todo.id === id ? { ...todo, text: next, dueDate } : todo,
     );
+    editDialog?.close();
     editText = "";
+    editDate = undefined;
     editTodo = undefined;
   }
 
@@ -104,8 +159,15 @@
                 bind:checked={todo.done}
                 class="checkbox checkbox-sm"
               />
-              <span class={todo.done ? "line-through opacity-40" : ""}>
-                {todo.text}
+              <span class="flex flex-col">
+                <span class={todo.done ? "line-through opacity-40" : ""}>
+                  {todo.text}
+                </span>
+                <p class="text-xs" class:text-error={isOverdue(todo.dueDate)}>
+                  {#if todo.dueDate && !todo.done}
+                    Due: {formatRelative(todo.dueDate)}
+                  {/if}
+                </p>
               </span>
             </label>
             <button
@@ -114,6 +176,9 @@
               onclick={() => {
                 editTodo = todo;
                 editText = todo.text;
+                editDate = todo.dueDate
+                  ? todo.dueDate.toPlainDateTime().toString().slice(0, 16)
+                  : undefined;
                 editDialog?.showModal();
               }}
             >
@@ -194,23 +259,33 @@
 <dialog bind:this={editDialog} class="modal">
   <div class="modal-box">
     <h3 class="text-lg font-bold">Edit Todo</h3>
-    <input
-      class="input mt-4 w-full"
-      placeholder="Have you decided what you're going to do?"
-      bind:value={editText}
-    />
+    <fieldset class="fieldset mt-4">
+      <legend class="fieldset-legend">Edit Todo Title</legend>
+      <input
+        class="input w-full"
+        placeholder="Have you decided what you're going to do?"
+        bind:value={editText}
+      />
+    </fieldset>
+
+    <fieldset class="fieldset">
+      <legend class="fieldset-legend">Select a due date</legend>
+      <span class="flex gap-2 items-center">
+        <input
+          type="datetime-local"
+          class="input flex-1"
+          bind:value={editDate}
+        />
+        <button onclick={() => (editDate = undefined)} class="btn btn-ghost"
+          >Clear</button
+        >
+      </span>
+    </fieldset>
     <div class="modal-action">
       <button type="button" class="btn" onclick={() => editDialog?.close()}>
         Cancel
       </button>
-      <button
-        type="button"
-        class="btn btn-primary"
-        onclick={() => {
-          rename(editTodo?.id, editText);
-          editDialog?.close();
-        }}
-      >
+      <button type="button" class="btn btn-primary" onclick={() => update()}>
         Save
       </button>
     </div>
