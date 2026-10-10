@@ -2,6 +2,7 @@
   import AboutDialog from "#lib/components/AboutDialog.svelte";
   import AddTodoForm from "#lib/components/AddTodoForm.svelte";
   import EditTodoDialog from "#lib/components/EditTodoDialog.svelte";
+  import SettingsDialog from "#lib/components/SettingsDialog.svelte";
   import TodoFooter from "#lib/components/TodoFooter.svelte";
   import TodoItem from "#lib/components/TodoItem.svelte";
   import {
@@ -14,6 +15,7 @@
   } from "#lib/todo.ts";
 
   let aboutDialog = $state<HTMLDialogElement>();
+  let settingsDialog = $state<HTMLDialogElement>();
   let editDialog = $state<HTMLDialogElement>();
   let editTodo = $state<Todo>();
   let editText = $state("");
@@ -22,18 +24,28 @@
   let todos = $state<Todo[]>([]);
   let input = $state("");
   let filter = $state<TodoFilter>("all");
+  let workspace = $state("default");
+  let loaded = false;
 
   $effect(() => {
-    const saved = localStorage.getItem("todos");
+    if (!workspace) workspace = "default";
+
+    const key = workspace + "-todos";
+    const saved = localStorage.getItem(key);
     if (saved) {
       try {
         todos = todosFromStorage(saved);
       } catch {}
+    } else {
+      todos = [];
     }
+    loaded = true;
   });
 
   $effect(() => {
-    localStorage.setItem("todos", todosToStorage(todos));
+    if (!workspace) workspace = "default";
+    if (!loaded) return;
+    localStorage.setItem(workspace + "-todos", todosToStorage(todos));
   });
 
   const remaining = $derived(todos.filter((t) => !t.done).length);
@@ -98,7 +110,13 @@
       <span class="text-gray-400">Maybe try create a todo?</span>
       <button
         onclick={() => aboutDialog?.showModal()}
-        class="text-gray-400 underline">About</button
+        class="text-gray-400 underline cursor-pointer hover:opacity-80 transition"
+        >About</button
+      >
+      <button
+        onclick={() => settingsDialog?.showModal()}
+        class="text-gray-400 underline cursor-pointer hover:opacity-80 transition"
+        >Settings</button
       >
     </p>
     <AddTodoForm bind:value={input} onadd={add} />
@@ -116,6 +134,8 @@
 </main>
 
 <AboutDialog bind:dialog={aboutDialog} />
+<SettingsDialog bind:dialog={settingsDialog} bind:workspace />
+
 <EditTodoDialog
   bind:dialog={editDialog}
   bind:text={editText}
