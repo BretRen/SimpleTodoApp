@@ -2,9 +2,11 @@
   let {
     value = $bindable(""),
     onadd,
+    locked,
   }: {
     value: string;
     onadd: () => void;
+    locked: boolean;
   } = $props();
 </script>
 
@@ -21,5 +23,5 @@
     bind:value
     class="input input-bordered flex-1"
   />
-  <button type="submit" class="btn">Add</button>
+  <button type="submit" class="btn" disabled={locked}>Add</button>
 </form>
