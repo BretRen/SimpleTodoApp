@@ -56,7 +56,7 @@ export function dueDateFromInput(
 
 export function todosFromStorage(saved: string): Todo[] {
   const parsed = JSON.parse(saved);
-  return parsed.map((t: any) => ({
+  return parsed.filter((t: Todo) => !t.deleted).map((t: any) => ({
     ...t,
     dueDate: t.dueDate ? Temporal.ZonedDateTime.from(t.dueDate) : undefined,
   }));

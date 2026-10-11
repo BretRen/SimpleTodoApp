@@ -16,6 +16,7 @@
     parseStorage,
     randomSalt,
   } from "#lib/crypto.ts";
+  import { isOfficialWorkspace, officialTodos } from "#lib/official.ts";
   import {
     dueDateFromInput,
     dueDateToInput,
@@ -53,6 +54,7 @@
   const latestWrite = new Map<string, number>();
 
   const visibleTodos = $derived(todos.filter((t) => !t.deleted));
+  const official = $derived(isOfficialWorkspace(workspace));
 
   function storageKey(name: string) {
     return name + "-todos";
@@ -66,6 +68,17 @@
   });
 
   $effect(() => {
+    if (isOfficialWorkspace(workspace)) {
+      sessionKey = null;
+      sessionSalt = null;
+      legacyPayload = null;
+      todos = officialTodos();
+      locked = false;
+      encryptionOn = false;
+      loaded = true;
+      if (filter === "deleted") filter = "all";
+      return;
+    }
     if (!workspace) workspace = "default";
 
     const key = storageKey(workspace);
@@ -123,7 +136,7 @@
 
   $effect(() => {
     if (!workspace) workspace = "default";
-    if (!loaded || locked) return;
+    if (!loaded || locked || isOfficialWorkspace(workspace)) return;
 
     const target = storageKey(workspace);
     const json = todosToStorage(todos);
@@ -198,7 +211,7 @@
 
   async function enableEncryption(password: string) {
     const trimmed = password.trim();
-    if (!trimmed || locked || encryptionOn) {
+    if (!trimmed || locked || encryptionOn || isOfficialWorkspace(workspace)) {
       throw new Error("Cannot enable encryption");
     }
     const nextSalt = randomSalt();
@@ -226,18 +239,21 @@
   );
 
   function handleDndConsider(e: any) {
+    if (official) return;
     const reordered = e.detail.items;
     const deleted = todos.filter((t) => t.deleted);
     todos = [...reordered, ...deleted];
   }
 
   function handleDndFinalize(e: any) {
+    if (official) return;
     const reordered = e.detail.items;
     const deleted = todos.filter((t) => t.deleted);
     todos = [...reordered, ...deleted];
   }
 
   function add() {
+    if (official) return;
     const val = input.trim();
     if (!val) return;
     todos.push({ id: crypto.randomUUID(), text: val, done: false });
@@ -245,10 +261,12 @@
   }
 
   function remove(id: string) {
+    if (official) return;
     todos = todos.filter((t) => t.id !== id);
   }
 
   function openEdit(todo: Todo) {
+    if (official) return;
     editTodo = todo;
     editText = todo.text;
     editDate = dueDateToInput(todo.dueDate);
@@ -256,6 +274,7 @@
   }
 
   function update() {
+    if (official) return;
     const id = editTodo?.id;
     const text = editText;
     const next = text?.trim();
@@ -273,6 +292,7 @@
   }
 
   function clearCompleted() {
+    if (official) return;
     todos = todos.filter((t) => !t.done);
   }
 </script>
@@ -311,12 +331,24 @@
       >Search</button
     >
   </div>
-  <AddTodoForm bind:value={input} onadd={add} {locked} />
+  {#if official}
+    <div role="alert" class="alert alert-info alert-soft mb-2">
+      <span>This official roadmap can't be changed.</span>
+    </div>
+  {:else}
+    <AddTodoForm bind:value={input} onadd={add} {locked} />
+  {/if}
   {#if isSearch}
     <SearchBox bind:value={query} placeholder="Search todos..." />
   {/if}
 
-  {#if filter === "all" && !isSearch && !locked}
+  {#if filter === "deleted"}
+    <div role="alert" class="alert alert-error alert-soft mb-2">
+      <span>Deleted to-do(s) will not be saved!!</span>
+    </div>
+  {/if}
+
+  {#if filter === "all" && !isSearch && !locked && !official}
     <div
       class="border border-base-200 rounded-box divide-y divide-base-200"
       use:dndzone={{
@@ -331,7 +363,7 @@
       onfinalize={handleDndFinalize}
     >
       {#each visibleTodos as todo (todo.id)}
-        <TodoItem {todo} onedit={openEdit} onremove={remove} />
+        <TodoItem {todo} onedit={openEdit} onremove={remove} readonly={official} />
       {/each}
     </div>
   {:else if locked}
@@ -345,12 +377,18 @@
   {:else}
     <div class="border border-base-200 rounded-box divide-y divide-base-200">
       {#each filtered as todo (todo.id)}
-        <TodoItem {todo} onedit={openEdit} onremove={remove} />
+        <TodoItem {todo} onedit={openEdit} onremove={remove} readonly={official} />
       {/each}
     </div>
   {/if}
 
-  <TodoFooter {remaining} bind:filter {todos} onclear={clearCompleted} />
+  <TodoFooter
+    {remaining}
+    bind:filter
+    {todos}
+    onclear={clearCompleted}
+    readonly={official}
+  />
 </div>
 
 <AboutDialog bind:dialog={aboutDialog} />

@@ -1,4 +1,9 @@
 <script lang="ts">
+  import {
+    isOfficialWorkspace,
+    officialWorkspaceName,
+  } from "#lib/official.ts";
+
   let {
     dialog = $bindable(),
     workspace = $bindable(),
@@ -24,9 +29,11 @@
   let confirmDeleteWorkspace = $state(false);
 
   function loadWorkspaces() {
-    workspaces = Object.keys(localStorage)
+    const saved = Object.keys(localStorage)
       .filter((key) => key.endsWith("-todos"))
-      .map((key) => key.replace("-todos", ""));
+      .map((key) => key.replace("-todos", ""))
+      .filter((name) => !isOfficialWorkspace(name));
+    workspaces = [officialWorkspaceName, ...saved];
   }
 
   function save() {
@@ -44,6 +51,7 @@
   }
 
   function deleteWorkspace() {
+    if (editWorkspace === "default" || isOfficialWorkspace(editWorkspace)) return;
     if (!confirmDeleteWorkspace) {
       confirmDeleteWorkspace = true;
       return;
@@ -122,14 +130,17 @@
       </div>
       <button
         class="btn btn-soft btn-error"
-        disabled={editWorkspace === "default"}
+        disabled={editWorkspace === "default" ||
+          isOfficialWorkspace(editWorkspace)}
         onclick={deleteWorkspace}
       >
         {editWorkspace === "default"
           ? "You can not delete default workspace"
-          : confirmDeleteWorkspace
-            ? "Confirm Delete"
-            : "Delete Workspace"}
+          : isOfficialWorkspace(editWorkspace)
+            ? "You can not delete the official workspace"
+            : confirmDeleteWorkspace
+              ? "Confirm Delete"
+              : "Delete Workspace"}
       </button>
     </fieldset>
 
@@ -137,7 +148,9 @@
       <legend class="fieldset-legend">Functions</legend>
       <button
         class="btn"
-        disabled={encryptionEnabled || editWorkspace !== workspace}
+        disabled={encryptionEnabled ||
+          editWorkspace !== workspace ||
+          isOfficialWorkspace(editWorkspace)}
         onclick={() => {
           encryptionError = "";
           encryptionDialog?.showModal();

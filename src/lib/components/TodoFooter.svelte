@@ -6,11 +6,13 @@
     filter = $bindable(),
     todos,
     onclear,
+    readonly = false,
   }: {
     remaining: number;
     filter: TodoFilter;
     todos: Todo[];
     onclear: () => void;
+    readonly?: boolean;
   } = $props();
 </script>
 
@@ -47,20 +49,22 @@
     >
       Completed
     </button>
-    <button
-      type="button"
-      class="join-item btn btn-xs {filter === 'deleted'
-        ? 'btn-error'
-        : 'btn-error btn-soft'}"
-      onclick={() => (filter = "deleted")}
-    >
-      Deleted
-    </button>
+    {#if !readonly}
+      <button
+        type="button"
+        class="join-item btn btn-xs {filter === 'deleted'
+          ? 'btn-error'
+          : 'btn-error btn-soft'}"
+        onclick={() => (filter = "deleted")}
+      >
+        Deleted
+      </button>
+    {/if}
   </div>
   <button
     type="button"
     class="hover:underline"
-    class:invisible={!todos.some((t) => t.done)}
+    class:invisible={readonly || !todos.some((t) => t.done)}
     onclick={onclear}
   >
     Clear completed
