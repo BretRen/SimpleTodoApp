@@ -2,6 +2,7 @@
   import AboutDialog from "#lib/components/AboutDialog.svelte";
   import AddTodoForm from "#lib/components/AddTodoForm.svelte";
   import EditTodoDialog from "#lib/components/EditTodoDialog.svelte";
+  import SearchBox from "#lib/components/SearchBox.svelte";
   import SettingsDialog from "#lib/components/SettingsDialog.svelte";
   import TodoFooter from "#lib/components/TodoFooter.svelte";
   import TodoItem from "#lib/components/TodoItem.svelte";
@@ -13,6 +14,8 @@
     type Todo,
     type TodoFilter,
   } from "#lib/todo.ts";
+  let query = $state("");
+  let isSearch = $state(false);
 
   let aboutDialog = $state<HTMLDialogElement>();
   let settingsDialog = $state<HTMLDialogElement>();
@@ -51,9 +54,16 @@
   const remaining = $derived(todos.filter((t) => !t.done).length);
   const filtered = $derived(
     todos.filter((t) => {
-      if (filter === "active") return !t.done;
-      if (filter === "completed") return t.done;
-      return true;
+      const matchQuery =
+        !isSearch ||
+        !query ||
+        t.text.toLowerCase().includes(query.toLowerCase());
+      const matchFilter =
+        filter === "all" ||
+        (filter === "active" && !t.done) ||
+        (filter === "completed" && t.done);
+
+      return matchQuery && matchFilter;
     }),
   );
 
@@ -101,41 +111,47 @@
   <title>Simple Todos App</title>
 </svelte:head>
 
-<main
-  class="min-h-screen bg-base-100 p-6 flex justify-center items-start pt-16"
->
-  <div class="w-full max-w-md space-y-4">
-    <h1 class="text-2xl font-bold tracking-tight">Todos</h1>
-    <p>
-      <span class="text-gray-400">Maybe try create a todo?</span>
-      <button
-        onclick={() => aboutDialog?.showModal()}
-        class="text-gray-400 underline cursor-pointer hover:opacity-80 transition"
-        >About</button
-      >
-      <button
-        onclick={() => settingsDialog?.showModal()}
-        class="text-gray-400 underline cursor-pointer hover:opacity-80 transition"
-        >Settings</button
-      >
-    </p>
-    <AddTodoForm bind:value={input} onadd={add} />
-
-    {#if todos.length > 0}
-      <div class="border border-base-200 rounded-box divide-y divide-base-200">
-        {#each filtered as todo (todo.id)}
-          <TodoItem {todo} onedit={openEdit} onremove={remove} />
-        {/each}
-      </div>
-
-      <TodoFooter {remaining} bind:filter {todos} onclear={clearCompleted} />
-    {/if}
+<div class="w-full max-w-md">
+  <h1 class="text-2xl font-bold tracking-tight">Todos</h1>
+  <div class="mt-4">
+    <span class="text-gray-400">Maybe try create a todo?</span>
+    <button
+      onclick={() => aboutDialog?.showModal()}
+      class="text-gray-400 underline cursor-pointer hover:opacity-80 transition"
+      >About</button
+    >
+    <button
+      onclick={() => settingsDialog?.showModal()}
+      class="text-gray-400 underline cursor-pointer hover:opacity-80 transition"
+      >Settings</button
+    >
   </div>
-</main>
+  <div class="mb-4">
+    <span class="text-gray-400">Function: </span>
+    <button
+      onclick={() => (isSearch = !isSearch)}
+      class="text-gray-400 underline cursor-pointer hover:opacity-80 transition"
+      >Search</button
+    >
+  </div>
+  <AddTodoForm bind:value={input} onadd={add} />
+  {#if isSearch}
+    <SearchBox bind:value={query} placeholder="Search todos..." />
+  {/if}
+
+  {#if todos.length > 0}
+    <div class="border border-base-200 rounded-box divide-y divide-base-200">
+      {#each filtered as todo (todo.id)}
+        <TodoItem {todo} onedit={openEdit} onremove={remove} />
+      {/each}
+    </div>
+
+    <TodoFooter {remaining} bind:filter {todos} onclear={clearCompleted} />
+  {/if}
+</div>
 
 <AboutDialog bind:dialog={aboutDialog} />
 <SettingsDialog bind:dialog={settingsDialog} bind:workspace />
-
 <EditTodoDialog
   bind:dialog={editDialog}
   bind:text={editText}

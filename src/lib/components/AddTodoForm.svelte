@@ -13,7 +13,7 @@
     e.preventDefault();
     onadd();
   }}
-  class="flex gap-2"
+  class="flex gap-2 my-4"
 >
   <input
     type="text"

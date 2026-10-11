@@ -14,13 +14,17 @@
   } = $props();
 </script>
 
-<div class="flex items-center justify-between text-xs text-base-content/60 px-1">
+<div
+  class="flex items-center justify-between text-xs text-base-content/60 px-1 mt-4"
+>
   <span>{remaining} {remaining === 1 ? "item" : "items"} left</span>
 
   <div class="join">
     <button
       type="button"
-      class="join-item btn btn-xs {filter === 'all' ? 'btn-active' : 'btn-ghost'}"
+      class="join-item btn btn-xs {filter === 'all'
+        ? 'btn-active'
+        : 'btn-ghost'}"
       onclick={() => (filter = "all")}
     >
       All
