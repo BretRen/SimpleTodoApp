@@ -47,6 +47,15 @@
     >
       Completed
     </button>
+    <button
+      type="button"
+      class="join-item btn btn-xs {filter === 'deleted'
+        ? 'btn-error'
+        : 'btn-error btn-soft'}"
+      onclick={() => (filter = "deleted")}
+    >
+      Deleted
+    </button>
   </div>
   <button
     type="button"

@@ -3,9 +3,10 @@ export interface Todo {
   text: string;
   done: boolean;
   dueDate?: Temporal.ZonedDateTime;
+  deleted?: boolean;
 }
 
-export type TodoFilter = "all" | "active" | "completed";
+export type TodoFilter = "all" | "active" | "completed" | "deleted";
 
 export function isOverdue(dueDate?: Temporal.ZonedDateTime): boolean {
   if (!dueDate) return false;
@@ -48,8 +49,8 @@ export function dueDateFromInput(
 ): Temporal.ZonedDateTime | undefined {
   return value
     ? Temporal.PlainDateTime.from(value).toZonedDateTime(
-        Temporal.Now.timeZoneId(),
-      )
+      Temporal.Now.timeZoneId(),
+    )
     : undefined;
 }
 

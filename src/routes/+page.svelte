@@ -51,7 +51,7 @@
     localStorage.setItem(workspace + "-todos", todosToStorage(todos));
   });
 
-  const remaining = $derived(todos.filter((t) => !t.done).length);
+  const remaining = $derived(todos.filter((t) => !t.done && !t.deleted).length);
   const filtered = $derived(
     todos.filter((t) => {
       const matchQuery =
@@ -59,9 +59,10 @@
         !query ||
         t.text.toLowerCase().includes(query.toLowerCase());
       const matchFilter =
-        filter === "all" ||
-        (filter === "active" && !t.done) ||
-        (filter === "completed" && t.done);
+        (filter === "all" && !t.deleted) ||
+        (filter === "active" && !t.done && !t.deleted) ||
+        (filter === "completed" && t.done && !t.deleted) ||
+        (filter === "deleted" && t.deleted);
 
       return matchQuery && matchFilter;
     }),
@@ -139,15 +140,13 @@
     <SearchBox bind:value={query} placeholder="Search todos..." />
   {/if}
 
-  {#if todos.length > 0}
-    <div class="border border-base-200 rounded-box divide-y divide-base-200">
-      {#each filtered as todo (todo.id)}
-        <TodoItem {todo} onedit={openEdit} onremove={remove} />
-      {/each}
-    </div>
+  <div class="border border-base-200 rounded-box divide-y divide-base-200">
+    {#each filtered as todo (todo.id)}
+      <TodoItem {todo} onedit={openEdit} onremove={remove} />
+    {/each}
+  </div>
 
-    <TodoFooter {remaining} bind:filter {todos} onclear={clearCompleted} />
-  {/if}
+  <TodoFooter {remaining} bind:filter {todos} onclear={clearCompleted} />
 </div>
 
 <AboutDialog bind:dialog={aboutDialog} />
