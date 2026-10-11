@@ -26,5 +26,8 @@
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
+	},
+	"dependencies": {
+		"svelte-dnd-action": "^0.9.80"
 	}
 }

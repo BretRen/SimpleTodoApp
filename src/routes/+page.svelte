@@ -14,6 +14,7 @@
     type Todo,
     type TodoFilter,
   } from "#lib/todo.ts";
+  import { dndzone } from "svelte-dnd-action";
   let query = $state("");
   let isSearch = $state(false);
 
@@ -29,6 +30,8 @@
   let filter = $state<TodoFilter>("all");
   let workspace = $state("default");
   let loaded = false;
+
+  const visibleTodos = $derived(todos.filter((t) => !t.deleted));
 
   $effect(() => {
     if (!workspace) workspace = "default";
@@ -67,6 +70,18 @@
       return matchQuery && matchFilter;
     }),
   );
+
+  function handleDndConsider(e: any) {
+    const reordered = e.detail.items;
+    const deleted = todos.filter((t) => t.deleted);
+    todos = [...reordered, ...deleted];
+  }
+
+  function handleDndFinalize(e: any) {
+    const reordered = e.detail.items;
+    const deleted = todos.filter((t) => t.deleted);
+    todos = [...reordered, ...deleted];
+  }
 
   function add() {
     const val = input.trim();
@@ -140,11 +155,31 @@
     <SearchBox bind:value={query} placeholder="Search todos..." />
   {/if}
 
-  <div class="border border-base-200 rounded-box divide-y divide-base-200">
-    {#each filtered as todo (todo.id)}
-      <TodoItem {todo} onedit={openEdit} onremove={remove} />
-    {/each}
-  </div>
+  {#if filter === "all" && !isSearch}
+    <div
+      class="border border-base-200 rounded-box divide-y divide-base-200"
+      use:dndzone={{
+        items: visibleTodos,
+        flipDurationMs: 150,
+        dropTargetStyle: {
+          outline: "2px dashed oklch(var(--s))",
+          backgroundColor: "oklch(var(--s) / 0.1)",
+        },
+      }}
+      onconsider={handleDndConsider}
+      onfinalize={handleDndFinalize}
+    >
+      {#each visibleTodos as todo (todo.id)}
+        <TodoItem {todo} onedit={openEdit} onremove={remove} />
+      {/each}
+    </div>
+  {:else}
+    <div class="border border-base-200 rounded-box divide-y divide-base-200">
+      {#each filtered as todo (todo.id)}
+        <TodoItem {todo} onedit={openEdit} onremove={remove} />
+      {/each}
+    </div>
+  {/if}
 
   <TodoFooter {remaining} bind:filter {todos} onclear={clearCompleted} />
 </div>
